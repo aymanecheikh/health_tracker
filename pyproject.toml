@@ -1,0 +1,22 @@
+[project]
+name = "health-tracker"
+version = "0.1.0"
+description = ""
+authors = [
+    {name = "Your Name",email = "you@example.com"}
+]
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "fastapi (>=0.119.1,<0.120.0)",
+    "uvicorn (>=0.38.0,<0.39.0)",
+    "pydantic (>=2.12.3,<3.0.0)",
+    "sqlalchemy (>=2.0.44,<3.0.0)"
+]
+
+[tool.poetry]
+packages = [{include = "health_tracker", from = "src"}]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
