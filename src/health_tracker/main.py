@@ -82,3 +82,10 @@ def get_daily_total(iso_date: str, db: Session = Depends(get_db)):
     return total or models.DailyTotal(
         date_local=d,
         tz="Europe/London")
+
+@app.get("/nutrition_cache/{query}")
+def get_cached(query: str, db: Session = Depends(get_db)):
+    hit = db.query(models.NutritionCache).filter(
+        models.NutritionCache.query_text == query
+    ).first()
+    return hit or {"cached": False}

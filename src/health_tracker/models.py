@@ -25,3 +25,15 @@ class DailyTotal(Base):
     fiber_g = Column(Float, nullable=False, default=0.0)
     items_count = Column(Integer, nullable=False, default=0)
     closed_at = Column(DateTime, nullable=True)
+
+class NutritionCache(Base):
+    __tablename__ = "nutrition_cache"
+
+    id = Column(Integer, primary_key=True, index=True)
+    query_text = Column(String, unique=True, nullable=False)
+    calories = Column(Float, nullable=False)
+    protein_g = Column(Float, nullable=False, default=0.0)
+    carbs_g = Column(Float, nullable=False, default=0.0)
+    fat_g = Column(Float, nullable=False, default=0.0)
+    fiber_g = Column(Float, nullable=False, default=0.0)
+    created_at = Column(DateTime, default=datetime.now, nullable=False)
