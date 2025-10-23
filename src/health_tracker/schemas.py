@@ -21,3 +21,11 @@ class DailyTotalOut(BaseModel):
     fiber_g: float
     items_count: int
     class Config: from_attributes = True
+
+class NutritionFillIn(BaseModel):
+    item: str
+    calories: float
+    protein_g: float = 0.0
+    carbs_g: float = 0.0
+    fat_g: float = 0.0
+    fiber_g: float = 0.0

@@ -1,16 +1,17 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from mangum import Mangum
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from .database import SessionLocal, Base, engine
 from . import models
-from .schemas import FoodEventIn, FoodEventOut, DailyTotalOut
+from .schemas import FoodEventIn, FoodEventOut, DailyTotalOut, NutritionFillIn
 from .timeutil import to_london_date
 
 
 app = FastAPI()
 handler = Mangum(app)
 Base.metadata.create_all(bind=engine)
+now_utc = datetime.now(timezone.utc)
 
 
 def get_db():
@@ -32,6 +33,18 @@ def create_food_event(event: FoodEventIn, db: Session = Depends(get_db)):
         raw_text=event.raw_text,
         calories=event.calories
     )
+    cache = db.query(models.NutritionCache).filter_by(
+        query_text=event.raw_text
+    ).first()
+    if cache:
+        obj.calories = cache.calories
+    else:
+        cache = models.NutritionCache(
+            query_text=event.raw_text,
+            calories=event.calories,
+            created_at=now_utc
+        )
+        db.add(cache)
     db.add(obj)
     d = to_london_date(event.ts)
     total = db.query(models.DailyTotal).filter(
@@ -49,7 +62,7 @@ def create_food_event(event: FoodEventIn, db: Session = Depends(get_db)):
             items_count=0
         )
         db.add(total)
-    total.calories = (total.calories or 0.0) + event.calories
+    total.calories = (total.calories or 0.0) + (obj.calories or 0.0)
     total.items_count = (total.items_count or 0) + 1
     db.commit()
     db.refresh(obj)
@@ -89,3 +102,25 @@ def get_cached(query: str, db: Session = Depends(get_db)):
         models.NutritionCache.query_text == query
     ).first()
     return hit or {"cached": False}
+
+@app.post("/nutrition_fill", response_model=NutritionFillIn)
+def fill_cache(payload: NutritionFillIn, db: Session = Depends(get_db)):
+    data = payload.model_dump()
+    cache = db.query(models.NutritionCache).filter_by(
+        query_text=data["item"]
+    ).first()
+    if not cache:
+        raise HTTPException(status_code=404, detail="Item not found in cache")
+    for key, value in data.items():
+        if key != "item":
+            setattr(cache, key, value)
+    cache.created_at = now_utc
+    db.commit()
+    return {
+        "item": cache.query_text,
+        "calories": cache.calories,
+        "protein_g": cache.protein_g,
+        "carbs_g": cache.carbs_g,
+        "fat_g": cache.fat_g,
+        "fiber_g": cache.fiber_g
+    }
