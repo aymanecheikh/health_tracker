@@ -124,3 +124,35 @@ def fill_cache(payload: NutritionFillIn, db: Session = Depends(get_db)):
         "fat_g": cache.fat_g,
         "fiber_g": cache.fiber_g
     }
+
+@app.get("/nutrition_lookup")
+def nutrition_lookup(item: str, db: Session = Depends(get_db)):
+    hit = db.query(models.NutritionCache).filter_by(
+        query_text=item
+    ).first()
+    if hit:
+        return {
+            "cached": True,
+            "query_text": hit.query_text,
+            "calories": hit.calories,
+            "protein_g": hit.protein_g,
+            "carbs_g": hit.carbs_g,
+            "fat_g": hit.fat_g,
+            "fiber_g": hit.fiber_g
+        }
+    
+    placeholder = models.NutritionCache(
+        query_text=item,
+        calories=0.0,
+        protein_g=0.0,
+        carbs_g=0.0,
+        fat_g=0.0,
+        fiber_g=0.0,
+        created_at=now_utc
+    )
+    db.add(placeholder)
+    db.commit()
+    return {
+        "cached": False,
+        "query_text": item
+    }
